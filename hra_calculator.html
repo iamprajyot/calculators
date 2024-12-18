@@ -1,8 +1,83 @@
-<html>
-  <head>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2531289480833737"crossorigin="anonymous"></script>
-   </head>
-   <body>
-    <iframe width="1000" height="450" frameborder="0" scrolling="no" src="https://onedrive.live.com/embed?resid=581C0BAC084D5B0%2142732&authkey=%21ALes3ddhQgrd-X0&em=2&wdAllowInteractivity=False&AllowTyping=True&wdHideGridlines=True&wdHideHeaders=True&wdInConfigurator=True&wdInConfigurator=True&edesNext=false&resen=false&ed1JS=false"></iframe>
-    </body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRA Exemption Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>HRA Exemption Calculator</h2>
+
+        <label for="hra_received">Monthly HRA Received from Employer (₹):</label>
+        <input type="number" id="hra_received" placeholder="Enter Monthly HRA" value="50000">
+
+        <label for="basic_salary">Monthly Basic Salary (₹):</label>
+        <input type="number" id="basic_salary" placeholder="Enter Monthly Basic Salary" value="100000">
+
+        <label for="rent_paid">Monthly Rent Paid (₹):</label>
+        <input type="number" id="rent_paid" placeholder="Enter Monthly Rent Paid" value="25000">
+
+        <button onclick="calculateHRA()">Calculate HRA Exemption</button>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        function calculateHRA() {
+            // Get input values
+            const hraReceived = parseFloat(document.getElementById('hra_received').value) * 12; // Yearly HRA
+            const basicSalary = parseFloat(document.getElementById('basic_salary').value) * 12; // Yearly Basic Salary
+            const rentPaid = parseFloat(document.getElementById('rent_paid').value) * 12; // Yearly Rent Paid
+
+            // Calculate components
+            const limitB = basicSalary * 0.40; // 40% of basic salary
+            const limitY = basicSalary * 0.10; // 10% of basic salary
+            const excessRentPaid = rentPaid - limitY; // Rent paid exceeding 10% of basic salary
+
+            // Calculate the least of these three values
+            const exemption = Math.min(hraReceived, limitB, excessRentPaid);
+
+            // Display result
+            document.getElementById('result').innerHTML = `Actual HRA Exemption: ₹${exemption.toFixed(2)}`;
+        }
+    </script>
+</body>
 </html>
