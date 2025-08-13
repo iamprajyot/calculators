@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Secure QR Scanner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 0; background: #fafafa; color: #222; }
+    main { max-width: 900px; margin: 20px auto; padding: 16px; }
+    .card { background:#fff; border:1px solid #eee; border-radius:16px; padding:16px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+    label { font-size: 14px; color:#555; }
+    input, button { font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid #ddd; }
+    button { background:#111; color:#fff; cursor:pointer; }
+    button.secondary { background:#f6f6f6; color:#111; }
+    #reader { width:100%; max-width:420px; margin: 12px auto; }
+    .hint { color:#666; font-size:13px; text-align:center; }
+    .ok { color:#0a7a28; text-align:center; }
+    .err { color:#b00020; text-align:center; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Secure QR Scanner</h1>
+
+    <div style="display:grid; gap:12px; grid-template-columns: 1fr auto auto;">
+      <div>
+        <label>Secret passphrase (must match generator)</label>
+        <input id="passphraseScan" placeholder="Shared secret" />
+      </div>
+      <button id="startScanBtn">Start Scan</button>
+      <button id="stopScanBtn" class="secondary">Stop</button>
+    </div>
+
+    <div id="reader"></div>
+    <div id="scanResult" class="hint">Grant camera permission to start.</div>
+  </main>
+
+  <!-- camera + qr decode -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script>
+    // --- crypto helpers (must mirror generator) ---
+    const enc = new TextEncoder(), dec = new TextDecoder();
+    const a2b = a => Uint8Array.from(atob(a), c => c.charCodeAt(0)).buffer;
+
+    async function deriveKey(pass, salt){
+      const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+      return crypto.subtle.deriveKey(
+        { name:"PBKDF2", salt, iterations:100000, hash:"SHA-256" },
+        km, { name:"AES-GCM", length:256 }, false, ["decrypt"]
+      );
+    }
+    async function decryptPayload(payload, passphrase){
+      if (!payload || payload.v !== 1 || payload.alg !== "AES-GCM") throw new Error("Invalid payload");
+      const salt = new Uint8Array(a2b(payload.s));
+      const iv   = new Uint8Array(a2b(payload.i));
+      const ct   = a2b(payload.c);
+      const key  = await deriveKey(passphrase, salt);
+      const pt   = await crypto.subtle.decrypt({ name:"AES-GCM", iv }, key, ct);
+      return new TextDecoder().decode(pt);
+    }
+
+    // --- scanner wiring ---
+    let html5QrCode = null;
+    const resultEl = document.getElementById("scanResult");
+
+    document.getElementById("startScanBtn").addEventListener("click", async () => {
+      const pass = document.getElementById("passphraseScan").value;
+      if(!pass) return alert("Enter the passphrase to start scanning.");
+
+      if (html5QrCode) return; // already running
+      html5QrCode = new Html5Qrcode("reader");
+
+      const onScanSuccess = async (decodedText) => {
+        try {
+          const payload = JSON.parse(decodedText);
+          const plaintext = await decryptPayload(payload, pass);
+          resultEl.innerHTML = `<div class="ok">✅ Guest verified: <b>${plaintext}</b></div>`;
+          // OPTIONAL: play a chime
+          // new Audio('data:audio/mp3;base64,...').play();
+        } catch (e) {
+          resultEl.innerHTML = `<div class="err">❌ Not our code / wrong secret.</div>`;
+        }
+      };
+
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: 260 },
+          onScanSuccess
+        );
+        resultEl.textContent = "Scanner running…";
+      } catch (err) {
+        resultEl.innerHTML = `<div class="err">Camera start failed: ${err}</div>`;
+      }
+    });
+
+    document.getElementById("stopScanBtn").addEventListener("click", async () => {
+      if (html5QrCode) {
+        await html5QrCode.stop();
+        await html5QrCode.clear();
+        html5QrCode = null;
+        resultEl.textContent = "Scanner stopped.";
+      }
+    });
+  </script>
+</body>
+</html>
