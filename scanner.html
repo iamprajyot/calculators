@@ -119,7 +119,10 @@
       .then(res => res.json())
       .then(data => {
         console.log("Server response:", data);
-        showGuestModal("success", guestName, "🎉 Thank you for joining Krish's Birthday celebration!");
+        if(data.success)
+          showGuestModal("success", guestName, "🎉 Thank you for joining Krish's Birthday celebration!");
+        else
+          showGuestModal("error", '', data.message);
       })
       .catch(err => {
         console.error("Error:", err);
