@@ -54,6 +54,17 @@
       color: #fff;
       cursor: pointer;
     }
+
+    /* Success theme */
+    .success h2 { color: #0a7a28; }
+    .success p { color: #0a7a28; }
+    .success button { background: #0a7a28; }
+
+    /* Error theme */
+    .error h2 { color: #b00020; }
+    .error p { color: #b00020; }
+    .error button { background: #b00020; }
+
     .spinner {
       width: 20px;
       height: 20px;
@@ -88,9 +99,9 @@
 
   <!-- Modal -->
   <div id="guestModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content" id="modalContent">
       <h2 id="guestName"></h2>
-      <p>🎉 Thank you for joining the Krish's Birthday celebration!</p>
+      <p id="modalMessage"></p>
       <button id="scanNextBtn">Scan Next Guest</button>
     </div>
   </div>
@@ -108,7 +119,7 @@
       .then(res => res.json())
       .then(data => {
         console.log("Server response:", data);
-        showGuestModal(guestName);
+        showGuestModal("success", guestName, "🎉 Thank you for joining Krish's Birthday celebration!");
       })
       .catch(err => {
         console.error("Error:", err);
@@ -116,7 +127,7 @@
       });
     }
 
-    // --- crypto helpers (must mirror generator) ---
+    // --- crypto helpers ---
     const enc = new TextEncoder(), dec = new TextDecoder();
     const a2b = a => Uint8Array.from(atob(a), c => c.charCodeAt(0)).buffer;
 
@@ -145,7 +156,7 @@
       const pass = document.getElementById("passphraseScan").value;
       if(!pass) return alert("Enter the passphrase to start scanning.");
 
-      if (html5QrCode) return; // already running
+      if (html5QrCode) return;
       html5QrCode = new Html5Qrcode("reader");
 
       const onScanSuccess = async (decodedText) => {
@@ -155,10 +166,11 @@
           resultEl.innerHTML = `<div class="ok">✅ Guest verified: <b>${plaintext}</b></div>`;
           sendGuestToLambda(plaintext);
 
-          // Stop scanning immediately after successful scan
           await stopScanner();
         } catch (e) {
           resultEl.innerHTML = `<div class="err">❌ Not our code / wrong secret.</div>`;
+          showGuestModal("error", "Invalid QR", "❌ Not our code / wrong secret.");
+          await stopScanner();
         }
       };
 
@@ -180,7 +192,6 @@
         await html5QrCode.clear();
         html5QrCode = null;
 
-        // Show spinner + text
         resultEl.innerHTML = `
           <div style="display: flex; align-items: center; gap: 10px;">
             <div class="spinner"></div>
@@ -194,13 +205,23 @@
     document.getElementById("stopScanBtn").addEventListener("click", stopScanner);
 
     // --- Modal functions ---
-    function showGuestModal(guestName) {
-      document.getElementById("guestName").textContent = guestName;
-      document.getElementById("guestModal").style.display = "flex";
+    function showGuestModal(type, title, message) {
+      const modal = document.getElementById("guestModal");
+      const content = document.getElementById("modalContent");
+      document.getElementById("guestName").textContent = title;
+      document.getElementById("modalMessage").textContent = message;
+
+      // reset theme
+      content.classList.remove("success", "error");
+      if(type === "success") content.classList.add("success");
+      if(type === "error") content.classList.add("error");
+
+      modal.style.display = "flex";
     }
+
     document.getElementById("scanNextBtn").addEventListener("click", () => {
       document.getElementById("guestModal").style.display = "none";
-      startScanner(); // restart scanning only when user clicks
+      startScanner();
     });
   </script>
 </body>
