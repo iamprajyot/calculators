@@ -16,6 +16,44 @@
     .hint { color:#666; font-size:13px; text-align:center; }
     .ok { color:#0a7a28; text-align:center; }
     .err { color:#b00020; text-align:center; }
+
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0; top: 0; width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.6);
+      justify-content: center; align-items: center;
+    }
+    .modal-content {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .modal h2 {
+      font-size: 28px;
+      margin: 0 0 12px;
+      color: #111;
+    }
+    .modal p {
+      font-size: 18px;
+      margin: 0 0 20px;
+      color: #444;
+    }
+    .modal button {
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+      background: #111;
+      color: #fff;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -35,9 +73,37 @@
     <div id="scanResult" class="hint">Grant camera permission to start.</div>
   </main>
 
+  <!-- Modal -->
+  <div id="guestModal" class="modal">
+    <div class="modal-content">
+      <h2 id="guestName"></h2>
+      <p>🎉 Thank you for joining the celebration!</p>
+      <button id="scanNextBtn">Scan Next Guest</button>
+    </div>
+  </div>
+
   <!-- camera + qr decode -->
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
+    // --- Lambda POST helper ---
+    function sendGuestToLambda(guestName) {
+      fetch("https://k0dvaqkz0h.execute-api.us-east-1.amazonaws.com/default/BirthdayScannerAndEmailer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guestName: guestName }),
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log("Server response:", data);
+        showGuestModal(guestName);
+      })
+      .catch(err => {
+        console.error("Error:", err);
+        alert("Failed to send notification");
+      });
+    }
+
+
     // --- crypto helpers (must mirror generator) ---
     const enc = new TextEncoder(), dec = new TextDecoder();
     const a2b = a => Uint8Array.from(atob(a), c => c.charCodeAt(0)).buffer;
@@ -75,8 +141,7 @@
           const payload = JSON.parse(decodedText);
           const plaintext = await decryptPayload(payload, pass);
           resultEl.innerHTML = `<div class="ok">✅ Guest verified: <b>${plaintext}</b></div>`;
-          // OPTIONAL: play a chime
-          // new Audio('data:audio/mp3;base64,...').play();
+          sendGuestToLambda(plaintext);
         } catch (e) {
           resultEl.innerHTML = `<div class="err">❌ Not our code / wrong secret.</div>`;
         }
@@ -101,6 +166,15 @@
         html5QrCode = null;
         resultEl.textContent = "Scanner stopped.";
       }
+    });
+
+    // --- Modal functions ---
+    function showGuestModal(guestName) {
+      document.getElementById("guestName").textContent = guestName;
+      document.getElementById("guestModal").style.display = "flex";
+    }
+    document.getElementById("scanNextBtn").addEventListener("click", () => {
+      document.getElementById("guestModal").style.display = "none";
     });
   </script>
 </body>
