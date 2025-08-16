@@ -103,7 +103,6 @@
       });
     }
 
-
     // --- crypto helpers (must mirror generator) ---
     const enc = new TextEncoder(), dec = new TextDecoder();
     const a2b = a => Uint8Array.from(atob(a), c => c.charCodeAt(0)).buffer;
@@ -129,7 +128,7 @@
     let html5QrCode = null;
     const resultEl = document.getElementById("scanResult");
 
-    document.getElementById("startScanBtn").addEventListener("click", async () => {
+    async function startScanner() {
       const pass = document.getElementById("passphraseScan").value;
       if(!pass) return alert("Enter the passphrase to start scanning.");
 
@@ -142,6 +141,9 @@
           const plaintext = await decryptPayload(payload, pass);
           resultEl.innerHTML = `<div class="ok">✅ Guest verified: <b>${plaintext}</b></div>`;
           sendGuestToLambda(plaintext);
+
+          // Stop scanning immediately after successful scan
+          await stopScanner();
         } catch (e) {
           resultEl.innerHTML = `<div class="err">❌ Not our code / wrong secret.</div>`;
         }
@@ -157,16 +159,19 @@
       } catch (err) {
         resultEl.innerHTML = `<div class="err">Camera start failed: ${err}</div>`;
       }
-    });
+    }
 
-    document.getElementById("stopScanBtn").addEventListener("click", async () => {
+    async function stopScanner() {
       if (html5QrCode) {
         await html5QrCode.stop();
         await html5QrCode.clear();
         html5QrCode = null;
         resultEl.textContent = "Scanner stopped.";
       }
-    });
+    }
+
+    document.getElementById("startScanBtn").addEventListener("click", startScanner);
+    document.getElementById("stopScanBtn").addEventListener("click", stopScanner);
 
     // --- Modal functions ---
     function showGuestModal(guestName) {
@@ -175,6 +180,7 @@
     }
     document.getElementById("scanNextBtn").addEventListener("click", () => {
       document.getElementById("guestModal").style.display = "none";
+      startScanner(); // restart scanning only when user clicks
     });
   </script>
 </body>
