@@ -95,6 +95,9 @@
 
     <div id="reader"></div>
     <div id="scanResult" class="hint">Grant camera permission to start.</div>
+    <div style="margin-top:20px; display:flex; gap:10px;">
+      <button id="viewGuestsBtn" class="secondary">View Scanned Guests</button>
+    </div>
   </main>
 
   <!-- Modal -->
@@ -106,12 +109,22 @@
     </div>
   </div>
 
+  <!-- Guests List Modal -->
+  <div id="guestListModal" class="modal">
+    <div class="modal-content">
+      <h2>Scanned Guests</h2>
+      <div id="guestListContainer">Loading...</div>
+      <button onclick="document.getElementById('guestListModal').style.display='none'">Close</button>
+    </div>
+  </div>
+
   <!-- camera + qr decode -->
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
+    const API_URL = "https://k0dvaqkz0h.execute-api.us-east-1.amazonaws.com/default/BirthdayScannerAndEmailer";
     // --- Lambda POST helper ---
     function sendGuestToLambda(guestName) {
-      fetch("https://k0dvaqkz0h.execute-api.us-east-1.amazonaws.com/default/BirthdayScannerAndEmailer", {
+      fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ guestName: guestName }),
@@ -226,6 +239,30 @@
       document.getElementById("guestModal").style.display = "none";
       startScanner();
     });
+
+    document.getElementById("viewGuestsBtn").addEventListener("click", () => {
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "list" })
+      })
+        .then(res => res.json())
+        .then(data => {
+          const guests = data.guests || [];
+          let html = "<table><tr><th>Name</th><th>Timestamp</th></tr>";
+          guests.forEach(g => {
+            html += `<tr><td>${g.guestName}</td><td>${new Date(Number(g.timestamp)).toLocaleString()}</td></tr>`;
+          });
+          html += "</table>";
+          document.getElementById("guestListContainer").innerHTML = html;
+          document.getElementById("guestListModal").style.display = "flex";
+        })
+        .catch(err => {
+          document.getElementById("guestListContainer").innerHTML = "Error loading guest list";
+          document.getElementById("guestListModal").style.display = "flex";
+        });
+    });
+
   </script>
 </body>
 </html>
