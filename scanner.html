@@ -95,7 +95,7 @@
 
     <div id="reader"></div>
     <div id="scanResult" class="hint">Grant camera permission to start.</div>
-    <div style="margin-top:20px; display:flex; gap:10px;">
+    <div id="guestButtonContainer" style="margin-top:20px; display:flex; gap:10px;">
       <button id="viewGuestsBtn" class="secondary">View Scanned Guests</button>
     </div>
   </main>
@@ -121,6 +121,14 @@
   <!-- camera + qr decode -->
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
+  // Get URL parameters
+    const params = new URLSearchParams(window.location.search);
+
+    // Check if 'show' parameter is 'list'
+    if (params.get("show") !== "list") {
+      // Hide the div if condition not met
+      document.getElementById("guestButtonContainer").style.display = "none";
+    }
     const API_URL = "https://k0dvaqkz0h.execute-api.us-east-1.amazonaws.com/default/BirthdayScannerAndEmailer";
     // --- Lambda POST helper ---
     function sendGuestToLambda(guestName) {
