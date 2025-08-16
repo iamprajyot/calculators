@@ -54,6 +54,19 @@
       color: #fff;
       cursor: pointer;
     }
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid #ccc;
+      border-top: 3px solid #007bff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -65,8 +78,8 @@
         <label>Password</label>
         <input id="passphraseScan" placeholder="Shared secret" />
       </div>
-      <button id="startScanBtn">Start Scan</button>
-      <!-- <button id="stopScanBtn" class="secondary">Stop</button> -->
+      <button id="startScanBtn">Start</button>
+      <button id="stopScanBtn" class="secondary">Stop</button>
     </div>
 
     <div id="reader"></div>
@@ -77,7 +90,7 @@
   <div id="guestModal" class="modal">
     <div class="modal-content">
       <h2 id="guestName"></h2>
-      <p>🎉 Thank you for joining the Krish's Birthday Celebration!</p>
+      <p>🎉 Thank you for joining the Krish's Birthday celebration!</p>
       <button id="scanNextBtn">Scan Next Guest</button>
     </div>
   </div>
@@ -166,7 +179,14 @@
         await html5QrCode.stop();
         await html5QrCode.clear();
         html5QrCode = null;
-        resultEl.textContent = "Scanner stopped.";
+
+        // Show spinner + text
+        resultEl.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="spinner"></div>
+            <span>Scanning in Progress...</span>
+          </div>
+        `;
       }
     }
 
