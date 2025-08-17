@@ -29,30 +29,55 @@
     .modal-content {
       background: #fff;
       border-radius: 16px;
-      padding: 24px;
-      text-align: center;
-      max-width: 400px;
       width: 90%;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      max-width: 700px;
+      display: flex;
+      flex-direction: column;
+      max-height: 80vh;
+      overflow: hidden;
     }
     .modal h2 {
-      font-size: 28px;
-      margin: 0 0 12px;
+      font-size: 20px;
+      margin: 0;
       color: #111;
     }
     .modal p {
-      font-size: 18px;
-      margin: 0 0 20px;
+      font-size: 16px;
+      margin: 0;
       color: #444;
     }
     .modal button {
-      padding: 12px 20px;
-      border-radius: 10px;
+      padding: 10px 18px;
+      border-radius: 8px;
       border: none;
       font-size: 16px;
       background: #111;
       color: #fff;
       cursor: pointer;
+    }
+
+    /* Header + Footer inside modal */
+    .modal-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #ddd;
+      background: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .modal-footer {
+      padding: 12px 16px;
+      border-top: 1px solid #ddd;
+      background: #fff;
+      position: sticky;
+      bottom: 0;
+      z-index: 1;
+      text-align: right;
+    }
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
     }
 
     /* Success theme */
@@ -73,11 +98,7 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -100,7 +121,7 @@
     </div>
   </main>
 
-  <!-- Modal -->
+  <!-- Guest Modal -->
   <div id="guestModal" class="modal">
     <div class="modal-content" id="modalContent">
       <h2 id="guestName"></h2>
@@ -112,25 +133,26 @@
   <!-- Guests List Modal -->
   <div id="guestListModal" class="modal">
     <div class="modal-content">
-      <h2>Scanned Guests</h2>
-      <div id="guestListContainer">Loading...</div>
-      <button onclick="document.getElementById('guestListModal').style.display='none'">Close</button>
+      <div class="modal-header">
+        <h2>Scanned Guests</h2>
+        <p>Total Guests Entered: <span id="guestCount">0</span></p>
+      </div>
+      <div class="modal-body" id="guestListContainer">Loading...</div>
+      <div class="modal-footer">
+        <button onclick="document.getElementById('guestListModal').style.display='none'">Close</button>
+      </div>
     </div>
   </div>
 
   <!-- camera + qr decode -->
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
-  // Get URL parameters
     const params = new URLSearchParams(window.location.search);
-
-    // Check if 'show' parameter is 'list'
     if (params.get("show") !== "list") {
-      // Hide the div if condition not met
       document.getElementById("guestButtonContainer").style.display = "none";
     }
     const API_URL = "https://k0dvaqkz0h.execute-api.us-east-1.amazonaws.com/default/BirthdayScannerAndEmailer";
-    // --- Lambda POST helper ---
+
     function sendGuestToLambda(guestName) {
       fetch(API_URL, {
         method: "POST",
@@ -139,22 +161,15 @@
       })
       .then(res => res.json())
       .then(data => {
-        console.log("Server response:", data);
         if(data.success)
           showGuestModal("success", guestName, "🎉 Thank you for joining Krish's Birthday celebration!");
         else
           showGuestModal("error", '', data.message);
       })
-      .catch(err => {
-        console.error("Error:", err);
-        alert("Failed to send notification");
-      });
+      .catch(err => alert("Failed to send notification"));
     }
 
-    // --- crypto helpers ---
-    const enc = new TextEncoder(), dec = new TextDecoder();
     const a2b = a => Uint8Array.from(atob(a), c => c.charCodeAt(0)).buffer;
-
     async function deriveKey(pass, salt){
       const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
       return crypto.subtle.deriveKey(
@@ -163,7 +178,6 @@
       );
     }
     async function decryptPayload(payload, passphrase){
-      if (!payload || payload.v !== 1 || payload.alg !== "AES-GCM") throw new Error("Invalid payload");
       const salt = new Uint8Array(a2b(payload.s));
       const iv   = new Uint8Array(a2b(payload.i));
       const ct   = a2b(payload.c);
@@ -172,15 +186,14 @@
       return new TextDecoder().decode(pt);
     }
 
-    // --- scanner wiring ---
     let html5QrCode = null;
     const resultEl = document.getElementById("scanResult");
 
     async function startScanner() {
       const pass = document.getElementById("passphraseScan").value;
       if(!pass) return alert("Enter the passphrase to start scanning.");
-
       if (html5QrCode) return;
+
       html5QrCode = new Html5Qrcode("reader");
 
       const onScanSuccess = async (decodedText) => {
@@ -189,7 +202,6 @@
           const plaintext = await decryptPayload(payload, pass);
           resultEl.innerHTML = `<div class="ok">✅ Guest verified: <b>${plaintext}</b></div>`;
           sendGuestToLambda(plaintext);
-
           await stopScanner();
         } catch (e) {
           resultEl.innerHTML = `<div class="err">❌ Not our code / wrong secret.</div>`;
@@ -215,9 +227,8 @@
         await html5QrCode.stop();
         await html5QrCode.clear();
         html5QrCode = null;
-
         resultEl.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="display:flex; align-items:center; gap:10px;">
             <div class="spinner"></div>
             <span>Scanning in Progress...</span>
           </div>
@@ -228,18 +239,14 @@
     document.getElementById("startScanBtn").addEventListener("click", startScanner);
     document.getElementById("stopScanBtn").addEventListener("click", stopScanner);
 
-    // --- Modal functions ---
     function showGuestModal(type, title, message) {
       const modal = document.getElementById("guestModal");
       const content = document.getElementById("modalContent");
       document.getElementById("guestName").textContent = title;
       document.getElementById("modalMessage").textContent = message;
-
-      // reset theme
       content.classList.remove("success", "error");
       if(type === "success") content.classList.add("success");
       if(type === "error") content.classList.add("error");
-
       modal.style.display = "flex";
     }
 
@@ -257,34 +264,30 @@
         .then(res => res.json())
         .then(data => {
           const guests = data.guests || [];
+          document.getElementById("guestCount").textContent = guests.length;
           let html = `
             <table style="border-collapse: collapse; width: 100%;">
               <thead>
                 <tr>
-                  <th style="border: 1px solid #000; padding: 8px;">#</th>
-                  <th style="border: 1px solid #000; padding: 8px;">Name</th>
-                  <th style="border: 1px solid #000; padding: 8px;">Timestamp (IST)</th>
+                  <th style="border:1px solid #000; padding:6px;">#</th>
+                  <th style="border:1px solid #000; padding:6px;">Name</th>
+                  <th style="border:1px solid #000; padding:6px;">Timestamp (IST)</th>
                 </tr>
               </thead>
               <tbody>
           `;
-
           guests.forEach((g, index) => {
-            // Convert timestamp to IST
             const istDate = new Date(Number(g.timestamp));
             const istString = istDate.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-
             html += `
               <tr>
-                <td style="border: 1px solid #000; padding: 8px; text-align: center;">${index + 1}</td>
-                <td style="border: 1px solid #000; padding: 8px;">${g.guestName}</td>
-                <td style="border: 1px solid #000; padding: 8px;">${istString}</td>
+                <td style="border:1px solid #ccc; padding:6px; text-align:center;">${index + 1}</td>
+                <td style="border:1px solid #ccc; padding:6px;">${g.guestName}</td>
+                <td style="border:1px solid #ccc; padding:6px;">${istString}</td>
               </tr>
             `;
           });
-
           html += `</tbody></table>`;
-
           document.getElementById("guestListContainer").innerHTML = html;
           document.getElementById("guestListModal").style.display = "flex";
         })
@@ -293,8 +296,6 @@
           document.getElementById("guestListModal").style.display = "flex";
         });
     });
-
-
   </script>
 </body>
 </html>
