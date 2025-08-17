@@ -56,13 +56,17 @@
     button.torch { background:#444; color:#fff; }
     button.torch.active { background:#f90; color:#111; }
 
+    /* 🚩 Big square scanner */
     #reader {
-      width: 100%; max-width: 360px;
-      aspect-ratio: 1/1;
+      width: 100%;
+      max-width: 500px;   /* bigger scanner on desktop */
+      aspect-ratio: 1/1;  /* perfect square */
       margin: 10px auto;
-      border: 2px dashed #ccc; border-radius: 8px;
+      border: 2px dashed #ccc;
+      border-radius: 10px;
       position: relative;
-      display: none; /* 🚩 hidden until scanner is started */
+      display: none;      /* hidden until scanner starts */
+      background: black;  /* dark background before video */
     }
     #closeScannerBtn {
       position: absolute;
@@ -71,8 +75,8 @@
       color: #fff;
       border: none;
       border-radius: 50%;
-      width: 28px; height: 28px;
-      font-size: 18px; line-height: 28px;
+      width: 30px; height: 30px;
+      font-size: 18px; line-height: 30px;
       cursor: pointer;
     }
     .hint, .ok, .err { text-align:center; font-size: 13px; margin-top: 4px; }
@@ -90,7 +94,7 @@
     .modal-content {
       background:#fff; border-radius:10px; padding:16px;
       text-align:center; width: 100%;
-      max-width: 700px; /* 🚩 fit inside container width */
+      max-width: 700px;   /* limit modal width to container */
       box-shadow:0 4px 15px rgba(0,0,0,0.3);
       position: relative;
     }
@@ -151,7 +155,7 @@
       <button id="toggleTorchBtn" class="torch">🔦 Torch</button>
     </div>
 
-    <!-- Scanner: hidden by default -->
+    <!-- Scanner (big square) -->
     <div id="reader">
       <button id="closeScannerBtn">×</button>
     </div>
@@ -189,7 +193,6 @@
   <script>
     const API_URL="https://k0dvaqkz0h.execute-api.us-east-1.amazonaws.com/default/BirthdayScannerAndEmailer";
 
-    // Decryption logic -------------
     function base64UrlToBytes(str){ str=str.replace(/-/g,"+").replace(/_/g,"/"); while(str.length%4) str+="="; return Uint8Array.from(atob(str), c=>c.charCodeAt(0)); }
     async function deriveKey(pass,salt){ const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]); return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:50000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["decrypt"]); }
     async function decryptCompactPayload(encoded, passphrase){ const all=base64UrlToBytes(encoded); if(all[0]!==1) throw new Error("Unsupported QR version"); const salt=all.slice(1,17), iv=all.slice(17,29), ct=all.slice(29); const key=await deriveKey(passphrase,salt); const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct); return new TextDecoder().decode(pt); }
@@ -211,7 +214,7 @@
       if(!pass) return alert("Enter passphrase.");
       if(html5QrCode){ await stopScanner(); }
 
-      readerDiv.style.display="block"; // 🚩 show scanner box
+      readerDiv.style.display="block"; // show scanner
       html5QrCode=new Html5Qrcode("reader");
 
       const onScanSuccess=async(decodedText)=>{
@@ -241,7 +244,7 @@
         try { await html5QrCode.clear(); } catch(e){}
         html5QrCode=null; torchOn=false;
         document.getElementById("toggleTorchBtn").classList.remove("active");
-        readerDiv.style.display="none"; // 🚩 hide scanner preview
+        readerDiv.style.display="none"; // hide scanner
         resultEl.innerHTML=`<div class="hint">Scanner stopped.</div>`;
       }
     }
@@ -250,7 +253,6 @@
     document.getElementById("stopScanBtn").addEventListener("click", stopScanner);
     document.getElementById("closeScannerBtn").addEventListener("click", stopScanner);
 
-    // Torch toggle
     document.getElementById("toggleTorchBtn").addEventListener("click", async()=>{
       if(!html5QrCode) return alert("Start scanner first");
       try {
@@ -260,7 +262,6 @@
       } catch(e){ alert("Torch not supported on this device/browser."); }
     });
 
-    // Modal
     function showGuestModal(type,title,message){
       const modal=document.getElementById("guestModal");
       const content=document.getElementById("modalContent");
@@ -270,11 +271,9 @@
       modal.style.display="flex";
     }
     document.getElementById("scanNextBtn").addEventListener("click",()=>{
-      document.getElementById("guestModal").style.display="none";
-      startScanner();
+      document.getElementById("guestModal").style.display="none"; startScanner();
     });
 
-    // Guest list
     document.getElementById("viewGuestsBtn").addEventListener("click",()=>{
       fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"list"})})
       .then(r=>r.json()).then(data=>{
