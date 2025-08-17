@@ -3,32 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <title>Secure QR Scanner</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 0; background: #fafafa; color: #222; }
-    main { max-width: 900px; margin: 20px auto; padding: 16px; }
-    .card { background:#fff; border:1px solid #eee; border-radius:16px; padding:16px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
-    label { font-size: 14px; color:#555; }
-    input, button { font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid #ddd; }
-    button { background:#111; color:#fff; cursor:pointer; }
-    button.secondary { background:#f6f6f6; color:#111; }
-    #reader { width:100%; max-width:420px; margin: 12px auto; }
-    .hint { color:#666; font-size:13px; text-align:center; }
-    .ok { color:#0a7a28; text-align:center; }
-    .err { color:#b00020; text-align:center; }
-
-    /* Modal styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+    }
+    .secondary {
+      background: #eee;
+      border: 1px solid #ccc;
+    }
     .modal {
       display: none;
       position: fixed;
-      z-index: 9999;
-      left: 0; top: 0; width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.6);
-      justify-content: center; align-items: center;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
     }
     .modal-content {
       background: #fff;
-      border-radius: 16px;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    /* --- Scoped to guest list modal only --- */
+    #guestListModal .modal-content {
       width: 90%;
       max-width: 700px;
       display: flex;
@@ -36,224 +47,49 @@
       max-height: 80vh;
       overflow: hidden;
     }
-    .modal h2 {
-      font-size: 20px;
-      margin: 0;
-      color: #111;
-    }
-    .modal p {
-      font-size: 16px;
-      margin: 0;
-      color: #444;
-    }
-    .modal button {
-      padding: 10px 18px;
-      border-radius: 8px;
-      border: none;
-      font-size: 16px;
-      background: #111;
-      color: #fff;
-      cursor: pointer;
-    }
-
-    /* Header + Footer inside modal */
-    .modal-header {
+    #guestListModal .gl-header {
       padding: 12px 16px;
       border-bottom: 1px solid #ddd;
       background: #fff;
-      position: sticky;
-      top: 0;
-      z-index: 1;
     }
-    .modal-footer {
+    #guestListModal .gl-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 16px;
+    }
+    #guestListModal .gl-footer {
       padding: 12px 16px;
       border-top: 1px solid #ddd;
       background: #fff;
-      position: sticky;
-      bottom: 0;
-      z-index: 1;
       text-align: right;
     }
-    .modal-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px;
-    }
-
-    /* Success theme */
-    .success h2 { color: #0a7a28; }
-    .success p { color: #0a7a28; }
-    .success button { background: #0a7a28; }
-
-    /* Error theme */
-    .error h2 { color: #b00020; }
-    .error p { color: #b00020; }
-    .error button { background: #b00020; }
-
-    .spinner {
-      width: 20px;
-      height: 20px;
-      border: 3px solid #ccc;
-      border-top: 3px solid #007bff;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-  <main class="card">
-    <h1>Secure QR Scanner</h1>
-
-    <div style="display:grid; gap:12px; grid-template-columns: 1fr auto auto;">
-      <div>
-        <label>Password</label>
-        <input id="passphraseScan" placeholder="Shared secret" />
-      </div>
-      <button id="startScanBtn">Start</button>
-      <button id="stopScanBtn" class="secondary">Stop</button>
-    </div>
-
-    <div id="reader"></div>
-    <div id="scanResult" class="hint">Grant camera permission to start.</div>
-    <div id="guestButtonContainer" style="margin-top:20px; display:flex; gap:10px;">
-      <button id="viewGuestsBtn" class="secondary">View Scanned Guests</button>
-    </div>
-  </main>
-
-  <!-- Guest Modal -->
-  <div id="guestModal" class="modal">
-    <div class="modal-content" id="modalContent">
-      <h2 id="guestName"></h2>
-      <p id="modalMessage"></p>
-      <button id="scanNextBtn">Scan Next Guest</button>
-    </div>
+  <div style="margin-top:20px; display:flex; gap:10px;">
+    <button id="viewGuestsBtn" class="secondary">View Scanned Guests</button>
   </div>
 
   <!-- Guests List Modal -->
   <div id="guestListModal" class="modal">
     <div class="modal-content">
-      <div class="modal-header">
-        <h2>Scanned Guests</h2>
-        <p>Total Guests Entered: <span id="guestCount">0</span></p>
+      <div class="gl-header">
+        <h2 style="margin:0;">Scanned Guests</h2>
+        <p style="margin:6px 0 0;">Total Guests Entered: <span id="guestCount">0</span></p>
       </div>
-      <div class="modal-body" id="guestListContainer">Loading...</div>
-      <div class="modal-footer">
+
+      <div class="gl-body">
+        <div id="guestListContainer">Loading...</div>
+      </div>
+
+      <div class="gl-footer">
         <button onclick="document.getElementById('guestListModal').style.display='none'">Close</button>
       </div>
     </div>
   </div>
 
-  <!-- camera + qr decode -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("show") !== "list") {
-      document.getElementById("guestButtonContainer").style.display = "none";
-    }
-    const API_URL = "https://k0dvaqkz0h.execute-api.us-east-1.amazonaws.com/default/BirthdayScannerAndEmailer";
-
-    function sendGuestToLambda(guestName) {
-      fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guestName: guestName }),
-      })
-      .then(res => res.json())
-      .then(data => {
-        if(data.success)
-          showGuestModal("success", guestName, "🎉 Thank you for joining Krish's Birthday celebration!");
-        else
-          showGuestModal("error", '', data.message);
-      })
-      .catch(err => alert("Failed to send notification"));
-    }
-
-    const a2b = a => Uint8Array.from(atob(a), c => c.charCodeAt(0)).buffer;
-    async function deriveKey(pass, salt){
-      const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
-      return crypto.subtle.deriveKey(
-        { name:"PBKDF2", salt, iterations:100000, hash:"SHA-256" },
-        km, { name:"AES-GCM", length:256 }, false, ["decrypt"]
-      );
-    }
-    async function decryptPayload(payload, passphrase){
-      const salt = new Uint8Array(a2b(payload.s));
-      const iv   = new Uint8Array(a2b(payload.i));
-      const ct   = a2b(payload.c);
-      const key  = await deriveKey(passphrase, salt);
-      const pt   = await crypto.subtle.decrypt({ name:"AES-GCM", iv }, key, ct);
-      return new TextDecoder().decode(pt);
-    }
-
-    let html5QrCode = null;
-    const resultEl = document.getElementById("scanResult");
-
-    async function startScanner() {
-      const pass = document.getElementById("passphraseScan").value;
-      if(!pass) return alert("Enter the passphrase to start scanning.");
-      if (html5QrCode) return;
-
-      html5QrCode = new Html5Qrcode("reader");
-
-      const onScanSuccess = async (decodedText) => {
-        try {
-          const payload = JSON.parse(decodedText);
-          const plaintext = await decryptPayload(payload, pass);
-          resultEl.innerHTML = `<div class="ok">✅ Guest verified: <b>${plaintext}</b></div>`;
-          sendGuestToLambda(plaintext);
-          await stopScanner();
-        } catch (e) {
-          resultEl.innerHTML = `<div class="err">❌ Not our code / wrong secret.</div>`;
-          showGuestModal("error", "Invalid QR", "❌ Not our code / wrong secret.");
-          await stopScanner();
-        }
-      };
-
-      try {
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: 260 },
-          onScanSuccess
-        );
-        resultEl.textContent = "Scanner running…";
-      } catch (err) {
-        resultEl.innerHTML = `<div class="err">Camera start failed: ${err}</div>`;
-      }
-    }
-
-    async function stopScanner() {
-      if (html5QrCode) {
-        await html5QrCode.stop();
-        await html5QrCode.clear();
-        html5QrCode = null;
-        resultEl.innerHTML = `
-          <div style="display:flex; align-items:center; gap:10px;">
-            <div class="spinner"></div>
-            <span>Scanning in Progress...</span>
-          </div>
-        `;
-      }
-    }
-
-    document.getElementById("startScanBtn").addEventListener("click", startScanner);
-    document.getElementById("stopScanBtn").addEventListener("click", stopScanner);
-
-    function showGuestModal(type, title, message) {
-      const modal = document.getElementById("guestModal");
-      const content = document.getElementById("modalContent");
-      document.getElementById("guestName").textContent = title;
-      document.getElementById("modalMessage").textContent = message;
-      content.classList.remove("success", "error");
-      if(type === "success") content.classList.add("success");
-      if(type === "error") content.classList.add("error");
-      modal.style.display = "flex";
-    }
-
-    document.getElementById("scanNextBtn").addEventListener("click", () => {
-      document.getElementById("guestModal").style.display = "none";
-      startScanner();
-    });
+    const API_URL = "YOUR_API_ENDPOINT"; // Replace with your backend URL
 
     document.getElementById("viewGuestsBtn").addEventListener("click", () => {
       fetch(API_URL, {
@@ -264,29 +100,36 @@
         .then(res => res.json())
         .then(data => {
           const guests = data.guests || [];
-          document.getElementById("guestCount").textContent = guests.length;
+
+          // Update total count below "Scanned Guests"
+          const gc = document.getElementById("guestCount");
+          if (gc) gc.textContent = guests.length;
+
+          // Build bordered, full-width table
           let html = `
             <table style="border-collapse: collapse; width: 100%;">
               <thead>
                 <tr>
-                  <th style="border:1px solid #000; padding:6px;">#</th>
-                  <th style="border:1px solid #000; padding:6px;">Name</th>
-                  <th style="border:1px solid #000; padding:6px;">Timestamp (IST)</th>
+                  <th style="border: 1px solid #000; padding: 8px; text-align:center;">#</th>
+                  <th style="border: 1px solid #000; padding: 8px;">Name</th>
+                  <th style="border: 1px solid #000; padding: 8px;">Timestamp (IST)</th>
                 </tr>
               </thead>
               <tbody>
           `;
+
           guests.forEach((g, index) => {
             const istDate = new Date(Number(g.timestamp));
             const istString = istDate.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
             html += `
               <tr>
-                <td style="border:1px solid #ccc; padding:6px; text-align:center;">${index + 1}</td>
-                <td style="border:1px solid #ccc; padding:6px;">${g.guestName}</td>
-                <td style="border:1px solid #ccc; padding:6px;">${istString}</td>
+                <td style="border: 1px solid #ccc; padding: 8px; text-align:center;">${index + 1}</td>
+                <td style="border: 1px solid #ccc; padding: 8px;">${g.guestName}</td>
+                <td style="border: 1px solid #ccc; padding: 8px;">${istString}</td>
               </tr>
             `;
           });
+
           html += `</tbody></table>`;
           document.getElementById("guestListContainer").innerHTML = html;
           document.getElementById("guestListModal").style.display = "flex";
