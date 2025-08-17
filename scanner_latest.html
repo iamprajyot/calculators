@@ -141,12 +141,12 @@
 
     // Decrypt compact QR
     function base64UrlToBytes(str){ str=str.replace(/-/g,"+").replace(/_/g,"/"); while(str.length%4) str+="="; return Uint8Array.from(atob(str), c=>c.charCodeAt(0)); }
-    async function deriveKey(pass,salt){ const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]); return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:50000,hash:"SHA-256"}, km,{name:"AES-GCM",length:256},false,["decrypt"]); }
+    async function deriveKey(pass,salt){ const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]); return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:50000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["decrypt"]); }
     async function decryptCompactPayload(encoded, passphrase){ const all=base64UrlToBytes(encoded); if(all[0]!==1) throw new Error("Unsupported QR version"); const salt=all.slice(1,17), iv=all.slice(17,29), ct=all.slice(29); const key=await deriveKey(passphrase,salt); const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct); return new TextDecoder().decode(pt); }
 
     function sendGuestToLambda(guestName){ fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guestName})}).then(r=>r.json()).then(data=>{ if(data.success) showGuestModal("success",guestName,"🎉 Welcome!"); else showGuestModal("error","",data.message); }).catch(()=>alert("Failed to send notification")); }
 
-    let html5QrCode=null, torchOn=false, currentCameraId=null;
+    let html5QrCode=null, torchOn=false;
     const resultEl=document.getElementById("scanResult");
 
     async function startScanner(){
@@ -170,13 +170,12 @@
       };
 
       try {
-        const devices=await Html5Qrcode.getCameras();
-        if(devices && devices.length){
-          currentCameraId=devices[0].id;
-          await html5QrCode.start({ deviceId: currentCameraId }, { fps: 10, qrbox: 250 }, onScanSuccess);
-        } else {
-          await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
-        }
+        // ✅ Always request back camera
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: 250 },
+          onScanSuccess
+        );
         resultEl.textContent="Scanner running…";
       } catch(err){
         resultEl.innerHTML=`<div class="err">Camera error: ${err}</div>`;
@@ -198,10 +197,10 @@
 
     // Torch toggle
     document.getElementById("toggleTorchBtn").addEventListener("click", async()=>{
-      if(!html5QrCode || !currentCameraId) return alert("Start scanner first");
+      if(!html5QrCode) return alert("Start scanner first");
       try {
         torchOn=!torchOn;
-        await html5QrCode.applyVideoConstraints({ advanced: [{ torch: torchOn }] });
+        await html5QrCode.applyVideoConstraints({ advanced:[{ torch: torchOn }] });
         document.getElementById("toggleTorchBtn").classList.toggle("active",torchOn);
       } catch(e){ alert("Torch not supported on this device/browser."); }
     });
