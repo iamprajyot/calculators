@@ -5,79 +5,131 @@
   <title>Secure QR Scanner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 0; background: #fafafa; color: #222; }
-    main { max-width: 900px; margin: 20px auto; padding: 16px; }
-    .card { background:#fff; border:1px solid #eee; border-radius:16px; padding:16px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
-    label { font-size: 14px; color:#555; }
-    input, button { font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid #ddd; }
-    button { background:#111; color:#fff; cursor:pointer; }
-    button.secondary { background:#f6f6f6; color:#111; }
-    #reader { width:100%; max-width:420px; margin: 12px auto; }
-    .hint { color:#666; font-size:13px; text-align:center; }
-    .ok { color:#0a7a28; text-align:center; }
-    .err { color:#b00020; text-align:center; }
+    body {
+      font-family: "Segoe UI", system-ui, Arial, sans-serif;
+      margin: 0;
+      background: #f1f3f6;
+      color: #222;
+      display: flex;
+      justify-content: center;
+      padding: 20px 10px;
+    }
+    .container {
+      background: #fff;
+      border: 2px solid #ccc;
+      border-radius: 12px;
+      max-width: 700px;
+      width: 100%;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    h1 { text-align: center; margin-bottom: 20px; font-size: 24px; }
 
+    .form-group { text-align:center; margin-bottom: 12px; }
+    .form-group input {
+      width: 60%;
+      max-width: 320px;
+      min-width: 200px;
+      padding: 10px 12px;
+      border:1px solid #ccc; border-radius:8px; font-size:15px;
+    }
+    .button-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    button {
+      font-size: 15px; padding: 10px 16px;
+      border: none; border-radius: 8px;
+      cursor: pointer; transition:0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    button.primary { background:#0078ff; color:#fff; }
+    button.primary:hover { background:#0064d0; }
+    button.secondary { background:#eee; color:#111; }
+    button.secondary:hover { background:#ddd; }
+    button.torch { background:#444; color:#fff; }
+    button.torch.active { background:#f90; color:#111; }
+
+    #reader {
+      width: 100%; max-width: 400px; margin: 0 auto 12px auto;
+      border: 2px dashed #ccc; border-radius: 8px;
+    }
+    .hint, .ok, .err { text-align:center; font-size: 14px; margin-top: 8px; }
+    .ok { color: #0a7a28; font-weight: 600; }
+    .err { color: #b00020; font-weight: 600; }
+
+    /* Modal */
     .modal {
-      display: none; position: fixed; z-index: 9999;
-      left: 0; top: 0; width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center;
+      display: none; position: fixed; z-index: 9999; left:0; top:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.6); justify-content:center; align-items:center; padding: 20px;
     }
     .modal-content {
-      background: #fff; border-radius: 16px; padding: 24px;
-      text-align: center; max-width: 400px; width: 90%;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      background:#fff; border-radius:12px; padding:20px;
+      text-align:center; max-width:400px; width:100%; box-shadow:0 4px 15px rgba(0,0,0,0.3);
     }
-    .modal h2 { font-size: 28px; margin: 0 0 12px; color: #111; }
-    .modal p { font-size: 18px; margin: 0 0 20px; color: #444; }
-    .modal button { padding: 12px 20px; border-radius: 10px; border: none;
-      font-size: 16px; background: #111; color: #fff; cursor: pointer; }
-    .success h2,.success p { color:#0a7a28;} .success button{background:#0a7a28;}
-    .error h2,.error p { color:#b00020;} .error button{background:#b00020;}
-    .spinner { width:20px;height:20px; border:3px solid #ccc; border-top:3px solid #007bff;
-      border-radius:50%; animation: spin 1s linear infinite; }
-    @keyframes spin {0%{transform:rotate(0);}100%{transform:rotate(360deg);} }
+    .modal h2 { font-size:22px; margin:0 0 10px; }
+    .modal p { margin: 0 0 14px; font-size:16px; }
+    .modal button { padding: 10px 16px; border:none; border-radius:8px; font-size:15px; cursor:pointer; }
+    .success h2,.success p { color:#0a7a28; } .success button { background:#0a7a28; color:#fff; }
+    .error h2,.error p { color:#b00020; } .error button { background:#b00020; color:#fff; }
 
-    /* Guest list modal */
-    #guestListModal .modal-content { max-width:600px;height:80%;display:flex;flex-direction:column; }
-    #guestListHeader { flex-shrink:0; }
-    #guestListContainer { flex:1;overflow-y:auto;margin:10px 0;text-align:left;}
-    #guestListFooter { flex-shrink:0; }
+    /* Guests list modal */
+    #guestListModal .modal-content {
+      max-width:600px; height:80%; display:flex; flex-direction:column;
+    }
+    #guestListContainer { flex:1; overflow-y:auto; text-align:left; font-size:14px; }
+
+    @media(max-width: 600px){
+      .form-group input { width: 100%; }
+      .button-row { flex-direction: column; }
+      .button-row button { width: 100%; justify-content:center; }
+    }
   </style>
 </head>
 <body>
-  <main class="card">
-    <h1>Secure QR Scanner</h1>
-    <div style="display:grid; gap:12px; grid-template-columns: 1fr auto auto;">
-      <div>
-        <label>Password</label>
-        <input id="passphraseScan" placeholder="Shared secret" />
-      </div>
-      <button id="startScanBtn">Start</button>
-      <button id="stopScanBtn" class="secondary">Stop</button>
-    </div>
-    <div id="reader"></div>
-    <div id="scanResult" class="hint">Grant camera permission to start.</div>
-    <div id="guestButtonContainer" style="margin-top:20px; display:flex; gap:10px;">
-      <button id="viewGuestsBtn" class="secondary">View Scanned Guests</button>
-    </div>
-  </main>
+  <div class="container">
+    <h1>📷 Secure QR Scanner</h1>
 
-  <!-- Modals -->
+    <!-- Passphrase input -->
+    <div class="form-group">
+      <label for="passphraseScan">Secret Passphrase</label><br/>
+      <input id="passphraseScan" placeholder="Shared secret" />
+    </div>
+
+    <!-- Buttons row -->
+    <div class="button-row">
+      <button id="startScanBtn" class="primary">▶ Start</button>
+      <button id="stopScanBtn" class="secondary">⏹ Stop</button>
+      <button id="toggleTorchBtn" class="torch">🔦 Torch</button>
+    </div>
+
+    <div id="reader"></div>
+    <div id="scanResult" class="hint">Grant camera permission & press Start.</div>
+
+    <div style="text-align:center; margin-top:16px;">
+      <button id="viewGuestsBtn" class="secondary">👥 View Guests</button>
+    </div>
+  </div>
+
+  <!-- Guest Modal -->
   <div id="guestModal" class="modal">
     <div class="modal-content" id="modalContent">
       <h2 id="guestName"></h2>
       <p id="modalMessage"></p>
-      <button id="scanNextBtn">Scan Next Guest</button>
+      <button id="scanNextBtn">Scan Next</button>
     </div>
   </div>
+
+  <!-- Guests List Modal -->
   <div id="guestListModal" class="modal">
     <div class="modal-content">
-      <div id="guestListHeader">
-        <h2>Scanned Guests</h2>
-        <p id="guestCount">Total Guests: 0</p>
-      </div>
+      <h2>Scanned Guests</h2>
+      <p id="guestCount">Total Guests: 0</p>
       <div id="guestListContainer">Loading...</div>
-      <div id="guestListFooter">
+      <div style="margin-top:10px; text-align:center;">
         <button onclick="document.getElementById('guestListModal').style.display='none'">Close</button>
       </div>
     </div>
@@ -85,100 +137,85 @@
 
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
-    const params = new URLSearchParams(window.location.search);
-    if(params.get("show")!=="list"){document.getElementById("guestButtonContainer").style.display="none";}
     const API_URL="https://k0dvaqkz0h.execute-api.us-east-1.amazonaws.com/default/BirthdayScannerAndEmailer";
 
-    function sendGuestToLambda(guestName){
-      fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guestName})})
-        .then(r=>r.json()).then(data=>{
-          if(data.success) showGuestModal("success", guestName, "🎉 Thank you for joining!");
-          else showGuestModal("error","",data.message);
-        }).catch(()=>alert("Failed to send notification"));
-    }
+    // Decrypt compact QR
+    function base64UrlToBytes(str){ str=str.replace(/-/g,"+").replace(/_/g,"/"); while(str.length%4) str+="="; return Uint8Array.from(atob(str), c=>c.charCodeAt(0)); }
+    async function deriveKey(pass,salt){ const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]); return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:50000,hash:"SHA-256"}, km,{name:"AES-GCM",length:256},false,["decrypt"]); }
+    async function decryptCompactPayload(encoded, passphrase){ const all=base64UrlToBytes(encoded); if(all[0]!==1) throw new Error("Unsupported QR version"); const salt=all.slice(1,17), iv=all.slice(17,29), ct=all.slice(29); const key=await deriveKey(passphrase,salt); const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct); return new TextDecoder().decode(pt); }
 
-    // --- Crypto for compact payload ---
-    function base64UrlToBytes(str){
-      str=str.replace(/-/g,"+").replace(/_/g,"/");
-      while(str.length%4) str+="=";
-      return Uint8Array.from(atob(str), c=>c.charCodeAt(0));
-    }
+    function sendGuestToLambda(guestName){ fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guestName})}).then(r=>r.json()).then(data=>{ if(data.success) showGuestModal("success",guestName,"🎉 Welcome!"); else showGuestModal("error","",data.message); }).catch(()=>alert("Failed to send notification")); }
 
-    async function deriveKey(pass,salt){
-      const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]);
-      return crypto.subtle.deriveKey(
-        {name:"PBKDF2",salt,iterations:50000,hash:"SHA-256"},
-        km,{name:"AES-GCM",length:256},false,["decrypt"]
-      );
-    }
-
-    async function decryptCompactPayload(encoded, passphrase){
-      const all=base64UrlToBytes(encoded);
-      if(all[0]!==1) throw new Error("Unsupported version");
-      const salt=all.slice(1,17);
-      const iv=all.slice(17,29);
-      const ct=all.slice(29);
-      const key=await deriveKey(passphrase,salt);
-      const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct);
-      return new TextDecoder().decode(pt);
-    }
-
-    // --- Scanner wiring ---
-    let html5QrCode=null;
+    let html5QrCode=null, torchOn=false, currentCameraId=null;
     const resultEl=document.getElementById("scanResult");
 
     async function startScanner(){
-      const pass=document.getElementById("passphraseScan").value;
-      if(!pass) return alert("Enter the passphrase first.");
-      if(html5QrCode) return;
+      const pass=document.getElementById("passphraseScan").value.trim();
+      if(!pass) return alert("Enter passphrase.");
+
+      if(html5QrCode){ await stopScanner(); }
 
       html5QrCode=new Html5Qrcode("reader");
       const onScanSuccess=async(decodedText)=>{
         try {
           const plaintext=await decryptCompactPayload(decodedText, pass);
-          resultEl.innerHTML=`<div class="ok">✅ Guest verified: <b>${plaintext}</b></div>`;
+          resultEl.innerHTML=`<div class="ok">✅ Guest: <b>${plaintext}</b></div>`;
           sendGuestToLambda(plaintext);
           await stopScanner();
         } catch(e){
-          console.error(e);
-          resultEl.innerHTML=`<div class="err">❌ Not our code / wrong secret.</div>`;
-          showGuestModal("error","Invalid QR","❌ Wrong code or wrong passphrase.");
+          resultEl.innerHTML=`<div class="err">❌ Invalid QR / Wrong passphrase</div>`;
+          showGuestModal("error","Invalid QR","❌ Wrong code or passphrase.");
           await stopScanner();
         }
       };
-      try{
-        await html5QrCode.start({facingMode:"environment"},{fps:10,qrbox:260},onScanSuccess);
+
+      try {
+        const devices=await Html5Qrcode.getCameras();
+        if(devices && devices.length){
+          currentCameraId=devices[0].id;
+          await html5QrCode.start({ deviceId: currentCameraId }, { fps: 10, qrbox: 250 }, onScanSuccess);
+        } else {
+          await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
+        }
         resultEl.textContent="Scanner running…";
-      }catch(err){
-        resultEl.innerHTML=`<div class="err">Camera start failed: ${err}</div>`;
+      } catch(err){
+        resultEl.innerHTML=`<div class="err">Camera error: ${err}</div>`;
       }
     }
 
     async function stopScanner(){
       if(html5QrCode){
-        await html5QrCode.stop(); await html5QrCode.clear(); html5QrCode=null;
-        resultEl.innerHTML=`<div style="display:flex;align-items:center;gap:10px;">
-          <div class="spinner"></div><span>Scanning stopped</span></div>`;
+        try { await html5QrCode.stop(); } catch(e){ console.warn("Stop error:", e.message); }
+        try { await html5QrCode.clear(); } catch(e){ console.warn("Clear error:", e.message); }
+        html5QrCode=null; torchOn=false;
+        document.getElementById("toggleTorchBtn").classList.remove("active");
+        resultEl.innerHTML=`<div class="hint">Scanner stopped.</div>`;
       }
     }
 
     document.getElementById("startScanBtn").addEventListener("click", startScanner);
     document.getElementById("stopScanBtn").addEventListener("click", stopScanner);
 
-    // Modal helpers
+    // Torch toggle
+    document.getElementById("toggleTorchBtn").addEventListener("click", async()=>{
+      if(!html5QrCode || !currentCameraId) return alert("Start scanner first");
+      try {
+        torchOn=!torchOn;
+        await html5QrCode.applyVideoConstraints({ advanced: [{ torch: torchOn }] });
+        document.getElementById("toggleTorchBtn").classList.toggle("active",torchOn);
+      } catch(e){ alert("Torch not supported on this device/browser."); }
+    });
+
+    // Modal
     function showGuestModal(type,title,message){
       const modal=document.getElementById("guestModal");
       const content=document.getElementById("modalContent");
       document.getElementById("guestName").textContent=title;
       document.getElementById("modalMessage").textContent=message;
-      content.classList.remove("success","error");
-      if(type==="success") content.classList.add("success");
-      if(type==="error") content.classList.add("error");
+      content.className="modal-content "+type;
       modal.style.display="flex";
     }
-    document.getElementById("scanNextBtn").addEventListener("click",()=>{
-      document.getElementById("guestModal").style.display="none"; startScanner();
-    });
+    document.getElementById("scanNextBtn").addEventListener("click",()=>{ document.getElementById("guestModal").style.display="none"; startScanner(); });
 
     // Guest list
     document.getElementById("viewGuestsBtn").addEventListener("click",()=>{
@@ -186,21 +223,12 @@
       .then(r=>r.json()).then(data=>{
         const guests=data.guests||[];
         document.getElementById("guestCount").textContent=`Total Guests: ${guests.length}`;
-        let html=`
-          <table style="border-collapse:collapse;width:100%;">
-          <thead><tr><th>#</th><th>Name</th><th>Timestamp (IST)</th></tr></thead><tbody>`;
-        guests.forEach((g,i)=>{
-          const d=new Date(Number(g.timestamp));
-          const s=d.toLocaleString("en-IN",{timeZone:"Asia/Kolkata"});
-          html+=`<tr><td>${i+1}</td><td>${g.guestName}</td><td>${s}</td></tr>`;
-        });
-        html+=`</tbody></table>`;
+        let html="<table style='width:100%; border-collapse:collapse;'><tr><th>#</th><th>Name</th><th>Time</th></tr>";
+        guests.forEach((g,i)=>{ const time=new Date(Number(g.timestamp)).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"}); html+=`<tr><td>${i+1}</td><td>${g.guestName}</td><td>${time}</td></tr>`; });
+        html+="</table>";
         document.getElementById("guestListContainer").innerHTML=html;
         document.getElementById("guestListModal").style.display="flex";
-      }).catch(()=>{
-        document.getElementById("guestListContainer").innerHTML="Error loading guest list";
-        document.getElementById("guestListModal").style.display="flex";
-      });
+      }).catch(()=>{ document.getElementById("guestListContainer").textContent="Error loading list"; document.getElementById("guestListModal").style.display="flex"; });
     });
   </script>
 </body>
