@@ -12,7 +12,7 @@
       color: #222;
       display: flex;
       justify-content: center;
-      padding: 20px 10px;
+      min-height: 100vh;
     }
     .container {
       background: #fff;
@@ -20,31 +20,34 @@
       border-radius: 12px;
       max-width: 700px;
       width: 100%;
-      padding: 20px;
+      padding: 12px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    h1 { text-align: center; margin-bottom: 20px; font-size: 24px; }
+    h1 { text-align: center; margin: 8px 0; font-size: 20px; }
 
-    .form-group { text-align:center; margin-bottom: 12px; }
+    .form-group { text-align:center; margin-bottom: 8px; }
     .form-group input {
       width: 60%;
-      max-width: 320px;
-      min-width: 200px;
-      padding: 10px 12px;
-      border:1px solid #ccc; border-radius:8px; font-size:15px;
+      max-width: 300px;
+      min-width: 180px;
+      padding: 8px 10px;
+      border:1px solid #ccc; border-radius:6px; font-size:14px;
     }
     .button-row {
       display: flex;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
-      margin-bottom: 16px;
+      margin-bottom: 10px;
     }
     button {
-      font-size: 15px; padding: 10px 16px;
-      border: none; border-radius: 8px;
+      font-size: 14px; padding: 6px 12px;
+      border: none; border-radius: 6px;
       cursor: pointer; transition:0.2s;
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; gap: 4px;
     }
     button.primary { background:#0078ff; color:#fff; }
     button.primary:hover { background:#0064d0; }
@@ -54,33 +57,76 @@
     button.torch.active { background:#f90; color:#111; }
 
     #reader {
-      width: 100%; max-width: 400px; margin: 0 auto 12px auto;
+      width: 100%; max-width: 360px;
+      aspect-ratio: 1/1;
+      margin: 10px auto;
       border: 2px dashed #ccc; border-radius: 8px;
+      position: relative;
+      display: none; /* 🚩 hidden until scanner is started */
     }
-    .hint, .ok, .err { text-align:center; font-size: 14px; margin-top: 8px; }
+    #closeScannerBtn {
+      position: absolute;
+      top: 6px; right: 6px;
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 28px; height: 28px;
+      font-size: 18px; line-height: 28px;
+      cursor: pointer;
+    }
+    .hint, .ok, .err { text-align:center; font-size: 13px; margin-top: 4px; }
     .ok { color: #0a7a28; font-weight: 600; }
     .err { color: #b00020; font-weight: 600; }
 
     /* Modal */
     .modal {
-      display: none; position: fixed; z-index: 9999; left:0; top:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.6); justify-content:center; align-items:center; padding: 20px;
+      display: none; position: fixed; z-index: 9999;
+      left:0; top:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.6);
+      justify-content:center; align-items:center;
+      overflow-y: auto; padding: 10px;
     }
     .modal-content {
-      background:#fff; border-radius:12px; padding:20px;
-      text-align:center; max-width:400px; width:100%; box-shadow:0 4px 15px rgba(0,0,0,0.3);
+      background:#fff; border-radius:10px; padding:16px;
+      text-align:center; width: 100%;
+      max-width: 700px; /* 🚩 fit inside container width */
+      box-shadow:0 4px 15px rgba(0,0,0,0.3);
+      position: relative;
     }
-    .modal h2 { font-size:22px; margin:0 0 10px; }
-    .modal p { margin: 0 0 14px; font-size:16px; }
-    .modal button { padding: 10px 16px; border:none; border-radius:8px; font-size:15px; cursor:pointer; }
+    .modal h2 { font-size:18px; margin:0 0 6px; }
+    .modal p { margin: 0 0 12px; font-size:14px; }
+    .modal button {
+      padding: 6px 12px; border:none; border-radius:6px;
+      font-size:14px; cursor:pointer;
+      margin-top:6px;
+    }
+    .modal .close-btn {
+      position: absolute;
+      right: 10px; top: 8px;
+      font-size: 18px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
     .success h2,.success p { color:#0a7a28; } .success button { background:#0a7a28; color:#fff; }
     .error h2,.error p { color:#b00020; } .error button { background:#b00020; color:#fff; }
 
     /* Guests list modal */
     #guestListModal .modal-content {
-      max-width:600px; height:80%; display:flex; flex-direction:column;
+      height: 85%;
+      display:flex; flex-direction:column;
     }
-    #guestListContainer { flex:1; overflow-y:auto; text-align:left; font-size:14px; }
+    #guestListContainer { flex:1; overflow-y:auto; text-align:left; font-size:13px; }
+    #guestListContainer table {
+      width: 100%; border-collapse: collapse; margin-top: 8px;
+    }
+    #guestListContainer th, #guestListContainer td {
+      border: 1px solid #ccc; padding: 6px; text-align: left;
+    }
+    #guestListContainer th {
+      background: #f5f5f5; font-weight: bold;
+    }
 
     @media(max-width: 600px){
       .form-group input { width: 100%; }
@@ -95,8 +141,7 @@
 
     <!-- Passphrase input -->
     <div class="form-group">
-      <label for="passphraseScan">Secret Passphrase</label><br/>
-      <input id="passphraseScan" placeholder="Shared secret" />
+      <input id="passphraseScan" placeholder="Secret passphrase" />
     </div>
 
     <!-- Buttons row -->
@@ -106,10 +151,13 @@
       <button id="toggleTorchBtn" class="torch">🔦 Torch</button>
     </div>
 
-    <div id="reader"></div>
+    <!-- Scanner: hidden by default -->
+    <div id="reader">
+      <button id="closeScannerBtn">×</button>
+    </div>
     <div id="scanResult" class="hint">Grant camera permission & press Start.</div>
 
-    <div style="text-align:center; margin-top:16px;">
+    <div style="text-align:center; margin-top:10px;">
       <button id="viewGuestsBtn" class="secondary">👥 View Guests</button>
     </div>
   </div>
@@ -117,6 +165,7 @@
   <!-- Guest Modal -->
   <div id="guestModal" class="modal">
     <div class="modal-content" id="modalContent">
+      <button class="close-btn" onclick="document.getElementById('guestModal').style.display='none'">×</button>
       <h2 id="guestName"></h2>
       <p id="modalMessage"></p>
       <button id="scanNextBtn">Scan Next</button>
@@ -126,10 +175,11 @@
   <!-- Guests List Modal -->
   <div id="guestListModal" class="modal">
     <div class="modal-content">
+      <button class="close-btn" onclick="document.getElementById('guestListModal').style.display='none'">×</button>
       <h2>Scanned Guests</h2>
       <p id="guestCount">Total Guests: 0</p>
       <div id="guestListContainer">Loading...</div>
-      <div style="margin-top:10px; text-align:center;">
+      <div style="margin-top:8px; text-align:center;">
         <button onclick="document.getElementById('guestListModal').style.display='none'">Close</button>
       </div>
     </div>
@@ -139,23 +189,31 @@
   <script>
     const API_URL="https://k0dvaqkz0h.execute-api.us-east-1.amazonaws.com/default/BirthdayScannerAndEmailer";
 
-    // Decrypt compact QR
+    // Decryption logic -------------
     function base64UrlToBytes(str){ str=str.replace(/-/g,"+").replace(/_/g,"/"); while(str.length%4) str+="="; return Uint8Array.from(atob(str), c=>c.charCodeAt(0)); }
     async function deriveKey(pass,salt){ const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]); return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:50000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["decrypt"]); }
     async function decryptCompactPayload(encoded, passphrase){ const all=base64UrlToBytes(encoded); if(all[0]!==1) throw new Error("Unsupported QR version"); const salt=all.slice(1,17), iv=all.slice(17,29), ct=all.slice(29); const key=await deriveKey(passphrase,salt); const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct); return new TextDecoder().decode(pt); }
 
-    function sendGuestToLambda(guestName){ fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guestName})}).then(r=>r.json()).then(data=>{ if(data.success) showGuestModal("success",guestName,"🎉 Welcome!"); else showGuestModal("error","",data.message); }).catch(()=>alert("Failed to send notification")); }
+    function sendGuestToLambda(guestName){
+      fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({guestName})})
+      .then(r=>r.json()).then(data=>{
+        if(data.success) showGuestModal("success",guestName,"🎉 Welcome!");
+        else showGuestModal("error","",data.message);
+      }).catch(()=>alert("Failed to send notification"));
+    }
 
     let html5QrCode=null, torchOn=false;
     const resultEl=document.getElementById("scanResult");
+    const readerDiv=document.getElementById("reader");
 
     async function startScanner(){
       const pass=document.getElementById("passphraseScan").value.trim();
       if(!pass) return alert("Enter passphrase.");
-
       if(html5QrCode){ await stopScanner(); }
 
+      readerDiv.style.display="block"; // 🚩 show scanner box
       html5QrCode=new Html5Qrcode("reader");
+
       const onScanSuccess=async(decodedText)=>{
         try {
           const plaintext=await decryptCompactPayload(decodedText, pass);
@@ -170,12 +228,7 @@
       };
 
       try {
-        // ✅ Always request back camera
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: 250 },
-          onScanSuccess
-        );
+        await html5QrCode.start({ facingMode: "environment" },{ fps: 10, qrbox: 250 }, onScanSuccess);
         resultEl.textContent="Scanner running…";
       } catch(err){
         resultEl.innerHTML=`<div class="err">Camera error: ${err}</div>`;
@@ -184,16 +237,18 @@
 
     async function stopScanner(){
       if(html5QrCode){
-        try { await html5QrCode.stop(); } catch(e){ console.warn("Stop error:", e.message); }
-        try { await html5QrCode.clear(); } catch(e){ console.warn("Clear error:", e.message); }
+        try { await html5QrCode.stop(); } catch(e){}
+        try { await html5QrCode.clear(); } catch(e){}
         html5QrCode=null; torchOn=false;
         document.getElementById("toggleTorchBtn").classList.remove("active");
+        readerDiv.style.display="none"; // 🚩 hide scanner preview
         resultEl.innerHTML=`<div class="hint">Scanner stopped.</div>`;
       }
     }
 
     document.getElementById("startScanBtn").addEventListener("click", startScanner);
     document.getElementById("stopScanBtn").addEventListener("click", stopScanner);
+    document.getElementById("closeScannerBtn").addEventListener("click", stopScanner);
 
     // Torch toggle
     document.getElementById("toggleTorchBtn").addEventListener("click", async()=>{
@@ -214,7 +269,10 @@
       content.className="modal-content "+type;
       modal.style.display="flex";
     }
-    document.getElementById("scanNextBtn").addEventListener("click",()=>{ document.getElementById("guestModal").style.display="none"; startScanner(); });
+    document.getElementById("scanNextBtn").addEventListener("click",()=>{
+      document.getElementById("guestModal").style.display="none";
+      startScanner();
+    });
 
     // Guest list
     document.getElementById("viewGuestsBtn").addEventListener("click",()=>{
@@ -222,12 +280,18 @@
       .then(r=>r.json()).then(data=>{
         const guests=data.guests||[];
         document.getElementById("guestCount").textContent=`Total Guests: ${guests.length}`;
-        let html="<table style='width:100%; border-collapse:collapse;'><tr><th>#</th><th>Name</th><th>Time</th></tr>";
-        guests.forEach((g,i)=>{ const time=new Date(Number(g.timestamp)).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"}); html+=`<tr><td>${i+1}</td><td>${g.guestName}</td><td>${time}</td></tr>`; });
+        let html="<table><tr><th>#</th><th>Name</th><th>Time</th></tr>";
+        guests.forEach((g,i)=>{
+          const time=new Date(Number(g.timestamp)).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"});
+          html+=`<tr><td>${i+1}</td><td>${g.guestName}</td><td>${time}</td></tr>`;
+        });
         html+="</table>";
         document.getElementById("guestListContainer").innerHTML=html;
         document.getElementById("guestListModal").style.display="flex";
-      }).catch(()=>{ document.getElementById("guestListContainer").textContent="Error loading list"; document.getElementById("guestListModal").style.display="flex"; });
+      }).catch(()=>{
+        document.getElementById("guestListContainer").textContent="Error loading list";
+        document.getElementById("guestListModal").style.display="flex";
+      });
     });
   </script>
 </body>
