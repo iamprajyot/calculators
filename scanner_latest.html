@@ -5,12 +5,37 @@
   <title>Secure QR Scanner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 0; background: #fafafa; color: #222; }
-    main { max-width: 900px; margin: 20px auto; padding: 16px; }
-    .card { background:#fff; border:1px solid #eee; border-radius:16px; padding:16px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
-    label { font-size: 14px; color:#555; }
-    input, button { font-size:16px; padding:10px 12px; border-radius:10px; border:1px solid #ddd; }
-    button { background:#111; color:#fff; cursor:pointer; }
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      margin: 0;
+      padding: 0; /* 🚩 removed top margin/padding */
+      background: #fafafa;
+      color: #222;
+    }
+    main {
+      max-width: 900px;
+      margin: 0 auto; /* 🚩 no vertical margin */
+      padding: 0;     /* 🚩 no padding */
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.05);
+    }
+    label { font-size: 14px; color: #555; display:block; text-align:center; }
+    input {
+      font-size:16px; padding:10px 12px;
+      border-radius:10px; border:1px solid #ddd;
+      display: block; margin: 0 auto; /* 🚩 center aligned */
+      text-align: center;
+    }
+    button {
+      font-size:16px; padding:10px 12px;
+      border-radius:10px; border:1px solid #ddd;
+      background:#111; color:#fff; cursor:pointer;
+    }
     button.secondary { background:#f6f6f6; color:#111; }
     #reader { width:100%; max-width:420px; margin: 12px auto; }
     .hint { color:#666; font-size:13px; text-align:center; }
@@ -29,8 +54,10 @@
     }
     .modal h2 { font-size: 28px; margin: 0 0 12px; color: #111; }
     .modal p { font-size: 18px; margin: 0 0 20px; color: #444; }
-    .modal button { padding: 12px 20px; border-radius: 10px; border: none;
-      font-size: 16px; background: #111; color: #fff; cursor: pointer; }
+    .modal button {
+      padding: 12px 20px; border-radius: 10px; border: none;
+      font-size: 16px; background: #111; color: #fff; cursor: pointer;
+    }
     .success h2,.success p { color:#0a7a28;} .success button{background:#0a7a28;}
     .error h2,.error p { color:#b00020;} .error button{background:#b00020;}
     .spinner { width:20px;height:20px; border:3px solid #ccc; border-top:3px solid #007bff;
@@ -46,18 +73,24 @@
 </head>
 <body>
   <main class="card">
-    <h1>Secure QR Scanner</h1>
-    <div style="display:grid; gap:12px; grid-template-columns: 1fr auto auto;">
-      <div>
-        <label>Password</label>
-        <input id="passphraseScan" placeholder="Shared secret" />
-      </div>
+    <h1 style="text-align:center;">Secure QR Scanner</h1>
+
+    <!-- Password field, centered -->
+    <div style="margin-bottom:12px;">
+      <label>Password</label>
+      <input id="passphraseScan" placeholder="Shared secret" />
+    </div>
+
+    <!-- Buttons row -->
+    <div style="display:flex; justify-content:center; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
       <button id="startScanBtn">Start</button>
       <button id="stopScanBtn" class="secondary">Stop</button>
+      <button id="torchBtn" class="secondary">Torch</button>
     </div>
+
     <div id="reader"></div>
     <div id="scanResult" class="hint">Grant camera permission to start.</div>
-    <div id="guestButtonContainer" style="margin-top:20px; display:flex; gap:10px;">
+    <div id="guestButtonContainer" style="margin-top:20px; display:flex; justify-content:center;">
       <button id="viewGuestsBtn" class="secondary">View Scanned Guests</button>
     </div>
   </main>
@@ -97,41 +130,31 @@
         }).catch(()=>alert("Failed to send notification"));
     }
 
-    // --- Crypto for compact payload ---
     function base64UrlToBytes(str){
       str=str.replace(/-/g,"+").replace(/_/g,"/");
       while(str.length%4) str+="=";
       return Uint8Array.from(atob(str), c=>c.charCodeAt(0));
     }
-
     async function deriveKey(pass,salt){
       const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]);
-      return crypto.subtle.deriveKey(
-        {name:"PBKDF2",salt,iterations:50000,hash:"SHA-256"},
-        km,{name:"AES-GCM",length:256},false,["decrypt"]
-      );
+      return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:50000,hash:"SHA-256"}, km,{name:"AES-GCM",length:256},false,["decrypt"]);
     }
-
     async function decryptCompactPayload(encoded, passphrase){
       const all=base64UrlToBytes(encoded);
       if(all[0]!==1) throw new Error("Unsupported version");
-      const salt=all.slice(1,17);
-      const iv=all.slice(17,29);
-      const ct=all.slice(29);
+      const salt=all.slice(1,17), iv=all.slice(17,29), ct=all.slice(29);
       const key=await deriveKey(passphrase,salt);
       const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct);
       return new TextDecoder().decode(pt);
     }
 
-    // --- Scanner wiring ---
-    let html5QrCode=null;
+    let html5QrCode=null, torchOn=false;
     const resultEl=document.getElementById("scanResult");
 
     async function startScanner(){
       const pass=document.getElementById("passphraseScan").value;
       if(!pass) return alert("Enter the passphrase first.");
       if(html5QrCode) return;
-
       html5QrCode=new Html5Qrcode("reader");
       const onScanSuccess=async(decodedText)=>{
         try {
@@ -140,7 +163,6 @@
           sendGuestToLambda(plaintext);
           await stopScanner();
         } catch(e){
-          console.error(e);
           resultEl.innerHTML=`<div class="err">❌ Not our code / wrong secret.</div>`;
           showGuestModal("error","Invalid QR","❌ Wrong code or wrong passphrase.");
           await stopScanner();
@@ -149,9 +171,7 @@
       try{
         await html5QrCode.start({facingMode:"environment"},{fps:10,qrbox:260},onScanSuccess);
         resultEl.textContent="Scanner running…";
-      }catch(err){
-        resultEl.innerHTML=`<div class="err">Camera start failed: ${err}</div>`;
-      }
+      }catch(err){ resultEl.innerHTML=`<div class="err">Camera start failed: ${err}</div>`; }
     }
 
     async function stopScanner(){
@@ -165,7 +185,15 @@
     document.getElementById("startScanBtn").addEventListener("click", startScanner);
     document.getElementById("stopScanBtn").addEventListener("click", stopScanner);
 
-    // Modal helpers
+    // Torch button – only works if device supports torch
+    document.getElementById("torchBtn").addEventListener("click", async ()=>{
+      if(!html5QrCode) return alert("Start scanner first");
+      try {
+        torchOn=!torchOn;
+        await html5QrCode.applyVideoConstraints({ advanced:[{ torch: torchOn }] });
+      } catch(e){ alert("Torch not supported on this device."); }
+    });
+
     function showGuestModal(type,title,message){
       const modal=document.getElementById("guestModal");
       const content=document.getElementById("modalContent");
@@ -180,15 +208,12 @@
       document.getElementById("guestModal").style.display="none"; startScanner();
     });
 
-    // Guest list
     document.getElementById("viewGuestsBtn").addEventListener("click",()=>{
       fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"list"})})
       .then(r=>r.json()).then(data=>{
         const guests=data.guests||[];
         document.getElementById("guestCount").textContent=`Total Guests: ${guests.length}`;
-        let html=`
-          <table style="border-collapse:collapse;width:100%;">
-          <thead><tr><th>#</th><th>Name</th><th>Timestamp (IST)</th></tr></thead><tbody>`;
+        let html=`<table style="border-collapse:collapse;width:100%;"><thead><tr><th>#</th><th>Name</th><th>Timestamp (IST)</th></tr></thead><tbody>`;
         guests.forEach((g,i)=>{
           const d=new Date(Number(g.timestamp));
           const s=d.toLocaleString("en-IN",{timeZone:"Asia/Kolkata"});
